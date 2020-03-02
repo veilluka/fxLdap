@@ -1,0 +1,9 @@
+iniFile.xml
+.idea/* 
+/src/main/java/backend/logs/debug.log
+/src/main/java/backend/logs/error.log
+/src/main/java/backend/logs/info.log
+/.gradle/
+/build/
+/gradle/wrapper/
+/logs/

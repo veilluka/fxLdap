@@ -1,0 +1,117 @@
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'idea'
+    id 'maven-publish'
+
+}
+group 'ch.cnc'
+version '1.34'
+
+jar {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+
+       archivesBaseName='FxLDAP'
+
+    manifest {
+        attributes 'Implementation-Title': 'FxLDAP'
+        attributes 'Implementation-Vendor': 'Bauer Vedran'
+        attributes 'JAVA-Version': JavaVersion.current()
+        attributes 'targetCompability': targetCompatibility
+    }
+    from sourceSets.main.allSource
+}
+
+repositories {
+    mavenCentral()
+    flatDir { dirs 'lib' }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId 'ch.cnc'
+            artifactId 'FxLDAP'
+            version version
+            from components.java
+        }
+    }
+}
+
+
+dependencies {
+    compile group: 'com.unboundid', name: 'unboundid-ldapsdk', version: '4.0.14'
+    compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.1'
+    compile group: 'org.apache.poi', name: 'poi', version: '3.17'
+    compile group: 'org.apache.poi', name: 'poi-ooxml', version: '3.17'
+    compile group: 'ldapsdk', name: 'ldapsdk', version: '4.1'
+    compile name: 'dockfx-0.4-SNAPSHOT'
+    compile group: 'net.sourceforge.argparse4j', name: 'argparse4j', version: '0.8.1'
+    compile group: 'com.github.peter-gergely-horvath', name: 'windpapi4j', version: '1.0'
+    compile group: 'net.java.dev.jna', name: 'jna', version: '5.4.0'
+    compile group: 'org.controlsfx', name: 'controlsfx', version: '8.40.14'
+    compile group: 'com.google.code.gson', name: 'gson', version: '2.8.5'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.6'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.6'
+    compile group: 'ldapsdk', name: 'ldapsdk', version: '4.1'
+    compile group: 'com.google.guava', name: 'guava', version: '24.1-jre'
+    compile name: 'secured-properties-1.2'
+    compile group: 'org.apache.commons', name: 'commons-csv', version: '1.6'
+    compile group: 'org.bouncycastle', name: 'bcprov-jdk16', version: '1.45'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+
+// ---------------------- JAVA FX-............................
+    compile group: 'org.openjfx', name: 'javafx', version: '13', ext: 'pom'
+    compile group: 'org.openjfx', name: 'javafx-base', version: '13'
+    compile group: 'org.openjfx', name: 'javafx-controls', version: '13'
+    compile group: 'org.openjfx', name: 'javafx-graphics', version: '13'
+    compile group: 'org.openjfx', name: 'javafx-media', version: '13'
+    compile group: 'org.openjfx', name: 'javafx-swing', version: '13'
+    compile group: 'org.openjfx', name: 'javafx-web', version: '13'
+}
+
+task createVersion{
+    doLast{
+        File f = new File("src/main/java/gui/Version.java")
+        f.write("package gui; \n public class Version{ ");
+        f.append("public static String VERSION=\"");
+        f.append(version+".");
+        Calendar c = Calendar.getInstance();
+        f.append(c.get(Calendar.YEAR));
+        f.append(c.get(Calendar.MONTH));
+        f.append(c.get(Calendar.DATE));
+        f.append("\";");
+        f.append("}");
+    }
+}
+
+task deployToLocal(dependsOn: installDist) {
+    doLast {
+        copy {
+            from 'build/install/'
+            into 'C:/Data/software'
+        }
+    }
+}
+task installLocal{
+    dependsOn createVersion
+    dependsOn jar
+    dependsOn installDist
+    tasks.findByName('jar').mustRunAfter 'createVersion'
+    tasks.findByName('installDist').mustRunAfter 'jar'
+    doLast {
+        copy {
+            from 'build/install/'
+            into 'C:/Data/software'
+        }
+    }
+}
+
+mainClassName = "gui.Main"
+
