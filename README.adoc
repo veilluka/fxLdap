@@ -1,6 +1,6 @@
 = FxLDAP
 Vedran Bauer
-v1.0 2019-10-25
+v1.34 2020-03-01
 
 
 == Introduction
