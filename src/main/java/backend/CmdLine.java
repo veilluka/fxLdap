@@ -237,7 +237,7 @@ public class CmdLine implements IProgress {
         if (inputFile == null) throw new Exception("No input file has been specified");
         if (!Files.exists(Paths.get(inputFile))) throw new Exception("File does not exist");
         if (attributes == null) throw new Exception("Attributes not specified");
-        Connection connection = new Connection(inputFile);
+        Connection connection = new Connection(inputFile,this,true);
         connection.set_readOnly(false);
         String split[] = attributes.split(",");
         List<ModifyRequest> modifyRequests = new ArrayList<>();

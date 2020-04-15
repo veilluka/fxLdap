@@ -1,6 +1,6 @@
 = FxLDAP
 Vedran Bauer
-v1.34 2020-03-01
+v1.35 2020-03-01
 github https://github.com/veilluka/fxLdap
 
 

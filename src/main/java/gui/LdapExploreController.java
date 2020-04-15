@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class LdapExploreController implements IProgress, ILoader {
@@ -529,19 +530,24 @@ public class LdapExploreController implements IProgress, ILoader {
 
 
     public void uploadLDIFFile(File selectedFile) throws IOException, LDIFException {
+        _progressStage.show();
+        _progressController.setProgress(0.0,"LOADING FILE NOW");
         TreeSet<String> foundAttributes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         try {
             _ldifReader = new LDIFReader(selectedFile);
         } catch (IOException e) {
             GuiHelper.EXCEPTION("Open LDIF File", "File->" + selectedFile + " open failed, exception occured", e);
             _ldifReader = null;
+            _progressStage.hide();
             return;
         }
         _breakFileLoad = false;
         _treeView.setRoot(null);
-        Connection cc = new Connection(selectedFile.getAbsolutePath());
-        cc.set_fileMode(true);
-        set_currentConnection(cc);
+
+         Connection cc = new Connection(selectedFile.getAbsolutePath(),this,false);
+
+         cc.set_fileMode(true);
+         set_currentConnection(cc);
 
         CustomEntry customEntry = new CustomEntry("cn=" + selectedFile.getAbsolutePath());
         try {
@@ -565,28 +571,42 @@ public class LdapExploreController implements IProgress, ILoader {
             customEntry.setRdn(selectedFile.getName());
             cc.refreshEntry(entry1);
         } catch (Exception e) {
+            _progressStage.hide();
             GuiHelper.EXCEPTION("Exception opening file", e.getMessage(), e);
             logger.error("Exception during opening file", e);
         }
         _treeView.setRoot(new TreeItem<>(customEntry));
         _treeView.getRoot().setExpanded(true);
-        _progressStage.show();
+
         _executor.submit(() -> {
             int nrOfEntriesDone = 0;
+            AtomicInteger atomicInteger = new AtomicInteger();
             while (true) {
                 Entry entry = null;
                 try {
                     entry = _ldifReader.readEntry();
-                    if (entry == null) break;
+                    if (entry == null)
+                    {
+                        _progressController.setProgress(1.0,"READ DONE, BUILD TREE NOW...");
+                        break;
+                    }
                     cc.refreshEntry(entry);
                     addEntriesFromLdif(_treeView.getRoot(), entry, entry.getDN());
                     entry.getAttributes().forEach(x -> foundAttributes.add(x.getName()));
                     nrOfEntriesDone++;
-                    if (nrOfEntriesDone % 1000 == 0) {
-                        if (_breakFileLoad) break;
-                        int nr = nrOfEntriesDone;
+                    if (nrOfEntriesDone % 100 == 0) {
+                        if (_breakFileLoad)
+                        {
+                            Platform.runLater(()->{
+                                _treeView.setRoot(null);
+                                _progressStage.hide();
+                            });
+                            _ldifReader = null;
+                            return;
+                        }
                         String dn = entry.getDN();
-                        Platform.runLater(() -> _progressController.setProgress((double) 1 / (double) nr, dn));
+                        final String entriesDone = String.valueOf(nrOfEntriesDone);
+                        Platform.runLater(() -> _progressController.setProgress((double) (atomicInteger.incrementAndGet() %100)  / 100.0, "Entries read->" + entriesDone));
                     }
 
                 } catch (Exception e) {
@@ -603,6 +623,8 @@ public class LdapExploreController implements IProgress, ILoader {
                 }
             }
             Platform.runLater(() -> {
+
+
                 setIcons(_treeView.getRoot());
                 _progressStage.hide();
                 setFileMode(true);

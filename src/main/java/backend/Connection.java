@@ -32,9 +32,12 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-public  class Connection implements  java.io.Serializable, Comparable<Connection>  {
+public  class Connection implements  java.io.Serializable, Comparable<Connection> {
 
     static Logger logger = LogManager.getLogger(Connection.class);
 
@@ -263,7 +266,7 @@ public  class Connection implements  java.io.Serializable, Comparable<Connection
        initAttributes();
     }
 
-    public Connection(String fileName) throws IOException, LDIFException {
+    public Connection(String fileName, IProgress progress, boolean loadAllEntries) throws IOException, LDIFException {
         initAttributes();
         setName(fileName);
         set_readOnly(false);
@@ -275,15 +278,41 @@ public  class Connection implements  java.io.Serializable, Comparable<Connection
         _fileName = fileName;
         _fileEntries = new TreeMap(String.CASE_INSENSITIVE_ORDER);
         _fileDummies.clear();
-        LDIFReader ldifReader = new LDIFReader(_fileName);
-        while (true) {
-            Entry entry = ldifReader.readEntry();
-            if(entry == null) break;
-            _fileEntries.put(entry.getDN(),entry);
-        }
-        ldifReader.close();
-        _foundSchemaAttributes.clear();
+        if(loadAllEntries) loadFile(progress);
     }
+
+
+
+    public Future<?> loadFile(IProgress progress) {
+        ExecutorService executor
+                = Executors.newSingleThreadExecutor();
+        return executor.submit(() -> {
+            LDIFReader ldifReader = null;
+            try {
+                ldifReader = new LDIFReader(_fileName);
+                int readEntries = 0;
+                while (true) {
+                    Entry entry = ldifReader.readEntry();
+                    if(entry == null) break;
+                    _fileEntries.put(entry.getDN(),entry);
+                    readEntries++;
+                    if(progress != null && (readEntries % 100 == 0))
+                    {
+                        progress.setProgress(entry.getDN(), (double) (readEntries%100) / (100.0));
+                    }
+                }
+                ldifReader.close();
+            }
+            catch (Exception e)
+            {
+               logger.error("Exception",e);
+               e.printStackTrace();
+            }
+            _foundSchemaAttributes.clear();
+        });
+    }
+
+
 
     private void initAttributes()
     {
@@ -931,5 +960,6 @@ public  class Connection implements  java.io.Serializable, Comparable<Connection
         }
         return new SearchResult(0,ResultCode.SUCCESS,"File OK",baseDN,null,resultEntries,null,resultEntries.size(),0,null);
     }
+
 
 }
