@@ -559,7 +559,11 @@ public  class Connection implements  java.io.Serializable, Comparable<Connection
             }
         }
         if(_ldapConnection != null && !_ldapConnection.isConnected()) _ldapConnection.reconnect();
-        return _ldapConnection.getEntry(dn);
+        {
+            if(dn == null) return null;
+            return _ldapConnection.getEntry(dn);
+        }
+
     }
 
     public LDAPResult modify(ModifyRequest modifyRequest) throws Exception {

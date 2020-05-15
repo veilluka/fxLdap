@@ -746,12 +746,15 @@ public class LdapExploreController implements IProgress, ILoader {
 
 
         List<CustomEntry> items = new ArrayList();
-        for (Entry entry : _currentReader.get_children()) {
-            CustomEntry collectionEntry = new CustomEntry(entry);
-            if (get_currentConnection().getDisplayAttribute() != null) {
-                collectionEntry.setDisplayAttribute(get_currentConnection().getDisplayAttribute());
+        if(_currentReader != null &&  _currentReader.get_children() != null)
+        {
+            for (Entry entry : _currentReader.get_children()) {
+                CustomEntry collectionEntry = new CustomEntry(entry);
+                if (get_currentConnection().getDisplayAttribute() != null) {
+                    collectionEntry.setDisplayAttribute(get_currentConnection().getDisplayAttribute());
+                }
+                items.add(collectionEntry);
             }
-            items.add(collectionEntry);
         }
         List<CustomEntry> sorted_items = items.stream().sorted().collect(Collectors.toList());
         Platform.runLater(() -> _progressController.setProgress(1.0, "LDAP Read done, sort and build tree now "));

@@ -33,9 +33,10 @@ public class CmdLine implements IProgress {
         _configuration.openConfiguration(Config.getConfigurationFile());
         initParser();
         Namespace ns;
+
         try {
             _ns = _parser.parseArgs(args);
-        } catch (ArgumentParserException e1) {
+        } catch (Exception e1) {
             logger.error("Exception in runCMD," + e1.getMessage(), e1);
             _parser.printUsage();
             return;
